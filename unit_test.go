@@ -86,11 +86,10 @@ func TestFuture_Recover(t *testing.T) {
         return strconv.Itoa(x.(int) / 7), nil
     }).Then(func(_ any) (any, error) {
         return 0, errors.New("handle")
-    }).Recover(func(_ error) {
-        close(recovered)
+    }).Recover(func(_ error) (any, error) {
+        return nil, nil
     }).Then(func(_ any) (any, error) {
-        t.Log("Don't execute Then after Recover")
-        t.Fail()
+        close(recovered)
         return nil, nil
     })
     <-recovered

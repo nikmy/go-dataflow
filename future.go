@@ -128,14 +128,14 @@ func (f Future) ThenAsync(async func(value any) Future) Future {
 
 /*
 Recover
-    Handle error if occur
+    If obtained Result contains error, it will be handled, and new result will be set.
+    If there are no errors, Result will be passed on.
 */
-func (f Future) Recover(handler func(error)) Future {
+func (f Future) Recover(handler func(error) (any, error)) Future {
     ff, p := MakeContract()
     f.Subscribe(func(input Result) {
         if input.HasError() {
-            p.Fail(input.Err)
-            handler(input.Err)
+            p.Keep(MakeResult(handler(input.Err)))
         } else {
             p.Keep(input)
         }
