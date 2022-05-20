@@ -64,10 +64,10 @@ func MakeFuture[T any](compute func() (T, error)) Future {
 GetReadyResult
     Non-blocking, use it for get result from ready Future
 */
-func GetReadyResult[T any](f *Future) (T, error) {
+func GetReadyResult(f *Future) (any, error) {
     val, err := f.s.result.Unpack()
     f.s = nil
-    return val.(T), err
+    return val, err
 }
 
 /*
@@ -75,9 +75,9 @@ GetResult
     Blocks until Future is ready.
     Do not use for futures with callback
 */
-func GetResult[T any](f *Future) (T, error) {
+func GetResult(f *Future) (any, error) {
     <-f.s.ready
-    return GetReadyResult[T](f)
+    return GetReadyResult(f)
 }
 
 /*

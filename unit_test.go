@@ -26,7 +26,7 @@ func TestFuture_Subscribe(t *testing.T) {
     }
     <-done
 
-    b, err := GetReadyResult[int](&f)
+    b, err := GetReadyResult(&f)
     if err != nil || b != 4 || a != 28 {
         t.Log(a)
         t.Fail()
@@ -34,22 +34,19 @@ func TestFuture_Subscribe(t *testing.T) {
 }
 
 func TestFuture_Then(t *testing.T) {
-    done := make(chan bool)
-    _ = MakeFuture(func() (any, error) {
+    f := MakeFuture(func() (any, error) {
         time.Sleep(2 * time.Second)
         return rand.Int(), nil
     }).Then(func(x any) (any, error) {
         return strconv.Itoa(x.(int) / 7), nil
     }).Then(func(_ any) (any, error) {
-        close(done)
         return 0, errors.New("skip")
     }).Then(func(_ any) (any, error) {
         t.Log("Don't execute Then if result fails")
         t.Fail()
         return nil, nil
     })
-    <-done
-    time.Sleep(time.Second * 3)
+    _, _ = GetResult(&f)
 }
 
 func TestFuture_ThenAsync(t *testing.T) {
@@ -60,9 +57,7 @@ func TestFuture_ThenAsync(t *testing.T) {
         })
     }
 
-    done := make(chan bool)
-
-    _ = MakeFuture(func() (any, error) {
+    f := MakeFuture(func() (any, error) {
         return rand.Int(), nil
     }).Then(func(x any) (any, error) {
         return strconv.Itoa(x.(int) / 7), nil
@@ -70,16 +65,13 @@ func TestFuture_ThenAsync(t *testing.T) {
         if x != 42 {
             t.Fail()
         }
-        close(done)
         return nil, nil
     })
-    <-done
+    _, _ = GetResult(&f)
 }
 
 func TestFuture_Recover(t *testing.T) {
-    recovered := make(chan bool)
-
-    _ = MakeFuture(func() (any, error) {
+    f := MakeFuture(func() (any, error) {
         time.Sleep(2 * time.Second)
         return rand.Int(), nil
     }).Then(func(x any) (any, error) {
@@ -89,12 +81,9 @@ func TestFuture_Recover(t *testing.T) {
     }).Recover(func(_ error) (any, error) {
         return nil, nil
     }).Then(func(_ any) (any, error) {
-        close(recovered)
         return nil, nil
     })
-    <-recovered
-
-    time.Sleep(time.Second * 3)
+    _, _ = GetResult(&f)
 }
 
 func TestCombine_FirstOf(t *testing.T) {
@@ -119,9 +108,9 @@ func TestCombine_FirstOf(t *testing.T) {
     f := FirstOf(waiters...)
     wg.Wait()
 
-    r, _ := GetResult[int32](&f)
+    r, _ := GetResult(&f)
 
-    if r != 1 {
+    if r.(int32) != 1 {
         t.Fail()
     }
 }
@@ -148,10 +137,10 @@ func TestCombine_All(t *testing.T) {
     f := All(waiters...)
     wg.Wait()
 
-    r, _ := GetResult[[]any](&f)
+    r, _ := GetResult(&f)
 
     s := int32(0)
-    for _, x := range r {
+    for _, x := range r.([]any) {
         s += x.(int32)
     }
 
